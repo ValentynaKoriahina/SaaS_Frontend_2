@@ -76,37 +76,154 @@ export default function Dashboard({
     setIsOpen(false);
   }
 
-  function downloadProcessedFile(fileName: any) {
+  async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<Response> {
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (accessToken) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${accessToken}`
+      };
+    }
+
+    let response = await fetch(url, options);
+
+    // Проверка на статус 401 и условия для повторного запроса
+    if (response.status === 401) {
+      const isRetrySuccess = await retryAuth();
+      if (isRetrySuccess) {
+        // options.headers!['_isRetry'] = true; // !Пометка, что запрос повторяется
+        response = await fetch(url, options); // Повторный запрос с обновленным токеном
+      }
+    }
+
+    return response;
+  }
+  
+  // Функция для повторной аутентификации и обновления токена
+  async function retryAuth(): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/refresh`, {
+        method: 'GET',
+        credentials: 'include', // withCredentials: true в Axios
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('accessToken', data.accessToken); // Обновление токена в хранилище
+        return true;
+      }
+      console.log('НЕ АВТОРИЗОВАН');
+      return false;
+    } catch (error) {
+      console.error('Ошибка при обновлении токена', error);
+      return false;
+    }
+  }
+
+  function downloadProcessedFile(fileName: string): void {
     console.log(fileName);
-    let pathToFile = "/api/downloadProcessedFile/" + fileName;
-    fetch(pathToFile, {
+    let pathToFile = `/api/downloadProcessedFile/${fileName}`;
+
+    // Используем fetchWithRetry вместо прямого вызова fetch
+    fetchWithRetry(pathToFile, {
       method: "GET",
       headers: {
         "Content-Type": "application/pdf",
       },
     })
-      .then((response) => {
+      .then(response => {
         if (!response.ok) {
           throw new Error("Server returned an error response");
         }
         return response.blob();
       })
-      .then((blob) => {
+      .then(blob => {
         const url = window.URL.createObjectURL(new Blob([blob]));
-
         const link = document.createElement("a");
         link.href = url;
-        link.download = fileName;
-
+        link.setAttribute("download", fileName); // Установите атрибут download для указания имени файла
         document.body.appendChild(link);
-
         link.click();
-
-        if (link.parentNode) {
-          link.parentNode.removeChild(link);
-        }
-      });
+        document.body.removeChild(link); // Удалите link после клика
+      })
+      .catch(error => console.error('Ошибка:', error));
   }
+
+
+  // function fetchWithToken(url: string, options: RequestInit = {}): Promise<Response> {
+  //   const accessToken = localStorage.getItem('accessToken');
+  //   if (accessToken) {
+  //     options.headers = {
+  //       ...options.headers,
+  //       'Authorization': `Bearer ${accessToken}`
+  //     };
+  //   }
+  //   return fetch(url, options);
+  // }
+
+  // function downloadProcessedFile(fileName: string): void {
+  //   console.log(fileName);
+  //   let pathToFile = `/api/downloadProcessedFile/${fileName}`;
+
+  //   fetchWithToken(pathToFile, {
+  //     method: "GET",
+  //     headers: {
+  //       "Content-Type": "application/pdf",
+  //     },
+  //   })
+  //     .then(response => {
+  //       if (!response.ok) {
+  //         throw new Error("Server returned an error response");
+  //       }
+  //       return response.blob();
+  //     })
+  //     .then(blob => {
+  //       const url = window.URL.createObjectURL(new Blob([blob]));
+  //       const link = document.createElement("a");
+  //       link.href = url;
+  //       link.setAttribute("download", fileName); // Установите атрибут download для указания имени файла
+  //       document.body.appendChild(link);
+  //       link.click();
+  //       document.body.removeChild(link); // Удалите link после клика
+  //     })
+  //     .catch(error => console.error('Ошибка:', error));
+  // }
+
+  // function downloadProcessedFile(fileName: any) {
+  //   console.log(fileName);
+
+  //   let pathToFile = "/api/downloadProcessedFile/" + fileName;
+  //   fetch(pathToFile, {
+  //     method: "GET",
+  //     headers: {
+  //       "Content-Type": "application/pdf",
+  //     },
+  //   })
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error("Server returned an error response");
+  //       }
+  //       return response.blob();
+  //     })
+  //     .then((blob) => {
+  //       const url = window.URL.createObjectURL(new Blob([blob]));
+
+  //       const link = document.createElement("a");
+  //       link.href = url;
+  //       link.download = fileName;
+
+  //       document.body.appendChild(link);
+
+  //       link.click();
+
+  //       if (link.parentNode) {
+  //         link.parentNode.removeChild(link);
+  //       }
+  //     });
+  // }
 
   // * ↑ VK: Significant for the backend area. Please exercise caution when making alterations
 
@@ -199,21 +316,21 @@ export default function Dashboard({
 
                   {userDataForDashboard
                     ? userDataForDashboard.data.paymentsData.map((e: any) => (
-                        <tr>
-                          <td>
-                            {userDataForDashboard
-                              ? e.paypal_seller_transaction_id
-                              : ""}
-                          </td>
-                          <td>
-                            {userDataForDashboard
-                              ? e.created_at.toLocaleString().split("T")[0]
-                              : ""}
-                          </td>
-                          <td>{userDataForDashboard ? e.status : ""}</td>
-                          <td>{userDataForDashboard ? e.amount : ""}</td>
-                        </tr>
-                      ))
+                      <tr>
+                        <td>
+                          {userDataForDashboard
+                            ? e.paypal_seller_transaction_id
+                            : ""}
+                        </td>
+                        <td>
+                          {userDataForDashboard
+                            ? e.created_at.toLocaleString().split("T")[0]
+                            : ""}
+                        </td>
+                        <td>{userDataForDashboard ? e.status : ""}</td>
+                        <td>{userDataForDashboard ? e.amount : ""}</td>
+                      </tr>
+                    ))
                     : ""}
                 </tbody>
               </table>
@@ -234,67 +351,67 @@ export default function Dashboard({
                 </tr>
                 {userDataForDashboard
                   ? userDataForDashboard.data.fileData
-                      .slice(-50, userDataForDashboard.data.fileData.length)
-                      .sort((a: any, b: any) =>
-                        a.created_at.date > b.created_at.date ? 1 : -1
-                      )
-                      .map((e: any) => (
-                        <tr>
-                          <td>{userDataForDashboard ? e.original_name : ""}</td>
-                          <td>{userDataForDashboard ? e.order_status : ""}</td>
-                          <td>{userDataForDashboard ? e.points_cost : ""}</td>
-                          <td>
-                            {userDataForDashboard
-                              ? e.created_at.toString().split("T")[0] +
-                                " " +
-                                e.created_at
-                                  .toString()
-                                  .split("T")[1]
-                                  .split(".")[0]
-                              : ""}
-                          </td>
-                          <td>
-                            {e.order_status === "pending" ? (
-                              e.points_cost <
+                    .slice(-50, userDataForDashboard.data.fileData.length)
+                    .sort((a: any, b: any) =>
+                      a.created_at.date > b.created_at.date ? 1 : -1
+                    )
+                    .map((e: any) => (
+                      <tr>
+                        <td>{userDataForDashboard ? e.original_name : ""}</td>
+                        <td>{userDataForDashboard ? e.order_status : ""}</td>
+                        <td>{userDataForDashboard ? e.points_cost : ""}</td>
+                        <td>
+                          {userDataForDashboard
+                            ? e.created_at.toString().split("T")[0] +
+                            " " +
+                            e.created_at
+                              .toString()
+                              .split("T")[1]
+                              .split(".")[0]
+                            : ""}
+                        </td>
+                        <td>
+                          {e.order_status === "pending" ? (
+                            e.points_cost <
                               userDataForDashboard.data.userData[0].points ? (
-                                <Button
-                                  children={"Start processing"}
-                                  color={"orange"}
-                                  style={"table-btn"}
-                                  disable={true}
-                                  onClick={() => {
-                                    handleOrder(e.order_id, e.points_cost);
-                                  }}
-                                />
-                              ) : (
-                                <>
-                                  <a>Not enough credits</a>
-                                </>
-                              )
+                              <Button
+                                children={"Start processing"}
+                                color={"orange"}
+                                style={"table-btn"}
+                                disable={true}
+                                onClick={() => {
+                                  handleOrder(e.order_id, e.points_cost);
+                                }}
+                              />
                             ) : (
-                              <></>
-                            )}
-                          </td>
-                          <td>
-                            {e.order_status !== "pending" ? (
-                              e.completed ? (
-                                <Button
-                                  children={"Download"}
-                                  color={"orange"}
-                                  style={"table-btn"}
-                                  onClick={() =>
-                                    downloadProcessedFile(e.processed_file)
-                                  }
-                                />
-                              ) : (
-                                "Not completed"
-                              )
+                              <>
+                                <a>Not enough credits</a>
+                              </>
+                            )
+                          ) : (
+                            <></>
+                          )}
+                        </td>
+                        <td>
+                          {e.order_status !== "pending" ? (
+                            e.completed ? (
+                              <Button
+                                children={"Download"}
+                                color={"orange"}
+                                style={"table-btn"}
+                                onClick={() =>
+                                  downloadProcessedFile(e.processed_file)
+                                }
+                              />
                             ) : (
-                              <></>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                              "Not completed"
+                            )
+                          ) : (
+                            <></>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                   : ""}
               </tbody>
             </table>

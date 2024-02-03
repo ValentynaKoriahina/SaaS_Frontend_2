@@ -66,9 +66,10 @@ function App() {
   }) {
     // * VK: userData содержит имя пользователя и пароль из формы
     const answer: any = await sendLogInRequest(userData);
-    console.log(answer, "answer");
+    // console.log(answer, "answer");
     setUserRole(answer.userRole);
     localStorage.setItem("userRole", answer.userRole);
+    localStorage.setItem("accessToken", answer.accessToken);
     if (answer.HTTP_status === 200) {
       // * VK: Логика в случае успешной авторизации
       // console.log('Server response OK:', data);

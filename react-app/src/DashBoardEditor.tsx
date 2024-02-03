@@ -51,6 +51,7 @@ export default function DashBoardEditor({
 
     const orderId2 = orderId;
     const editorId2 = editorId;
+
     try {
       const response = await fetch(
         `/api/assignOrder?editorId=${editorId2}&orderId=${orderId2}`,

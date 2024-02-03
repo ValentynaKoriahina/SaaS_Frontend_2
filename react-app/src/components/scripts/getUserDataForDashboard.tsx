@@ -1,3 +1,5 @@
+import { fetchWithRefreshAuth } from "./fetchWithRefreshAuth";
+
 /**
  * Retrieves the user data set for rendering the Dashboard from the server.
  * @async
@@ -6,14 +8,18 @@
  * @throws {Error} If an error occurs while requesting the server.
  */
 
+
+
 async function getUserDataForDashboard() {
   try {
-    const response = await fetch("/api/getUserDataForDashboard");
+    const response = await fetchWithRefreshAuth("/api/getUserDataForDashboard");
 
     // Extracts data from the response in JSON format.
     const data = await response.json();
+
+    console.log('data', data);
     if (data.status == "fail") {
-      alert("User is not authorized");
+      alert("Please log in.");
       console.log(data.message);
     } else {
       return data;
