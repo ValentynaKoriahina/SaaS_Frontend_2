@@ -8,7 +8,7 @@ import DownLoadFile from "./components/DownloadFile";
 import ChangeProfileForm from "./components/modal/ChangeProfileForm";
 
 // * VK: Significant for the backend area. Please exercise caution when making alterations
-import { getUserDataForDashboard } from "./fetchScripts/getUserDataForDashboard";
+import { getRegistredUserData } from "./fetchScripts/getUserDataForDashboard";
 import { fetchWithRefreshAuth } from "./fetchScripts/fetchWithRefreshAuth";
 
 
@@ -35,7 +35,7 @@ export default function DashBoardManager({
     const requestData = async () => {
       try {
         // Запрос комбинированных данных о пользователе при загрузке компонента
-        const serverAnswer = await getUserDataForDashboard();
+        const serverAnswer = await getRegistredUserData();
         console.log(serverAnswer);
         setUserDataForDashboard(serverAnswer);
         // Сохраняем данные в состоянии

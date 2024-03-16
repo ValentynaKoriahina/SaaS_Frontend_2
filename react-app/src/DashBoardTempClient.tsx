@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { Key, useEffect, useState } from "react";
 import Footer from "./components/footer/footer";
 import HeaderMenu from "./components/header/header";
 // * VK: Significant for the backend area. Please exercise caution when making alterations
-import { getUserDataForDashboard1 } from "./fetchScripts/getUserDataForDashboard";
+import { getTempUserData } from "./fetchScripts/getUserDataForDashboard";
 import { fetchWithRefreshAuth } from "./fetchScripts/fetchWithRefreshAuth";
 
 import Button from "./components/Button";
 import ModalWindow from "./components/modal/modal";
 import { Link, useLocation } from "react-router-dom";
 import ChangeProfileForm from "./components/modal/ChangeProfileForm";
+import DashboardTooltip from "./components/DashboardTooltip";
+import Inbox from "./components/Inbox";
+
+
 
 export default function Dashboard({
   kind,
@@ -26,22 +30,23 @@ export default function Dashboard({
   const location = useLocation();
 
   useEffect(() => {
-    // Получаем ИД заказа из url
     const searchParams = new URLSearchParams(location.search);
     const orderId = searchParams.get("orderId");
-
+  
     const requestData = async () => {
       try {
-        // Запрос комбинированных данных о пользователе при загрузке компонента
-        const serverAnswer = await getUserDataForDashboard1(orderId);
+        const serverAnswer = await getTempUserData(orderId);
         console.log(serverAnswer);
-        setUserDataForDashboard(serverAnswer.data); // Сохраняем данные в состоянии
+        setUserDataForDashboard(serverAnswer.data);
+        console.log(userDataForDashboard)
       } catch (error) {
         console.error("An error occurred while loading data:", error);
       }
     };
-
-    requestData();
+  
+    if (!userDataForDashboard) {
+      requestData();
+    }
   }, []);
 
 
@@ -53,7 +58,6 @@ export default function Dashboard({
   }
 
   function downloadProcessedFile(orderId: any) {
-    console.log(orderId);
     let pathToFile = "/api/downloadProcessedFile/" + orderId;
     fetchWithRefreshAuth(pathToFile, {
       method: "GET",
@@ -67,20 +71,20 @@ export default function Dashboard({
         return response.blob();
       })
       .then((blob) => {
-        // Создаем URL для скачивания файла
+        // Create URL for downloading the file
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        // Указываем имя файла для скачивания
+        // Specify the name of the file to download
         a.download = orderId + '.zip';
         document.body.appendChild(a);
         a.click();
-        // Очищаем ссылку
+        // Clearing the link
         window.URL.revokeObjectURL(url);
       })
       .catch(error => {
-        console.error('Ошибка при скачивании файла:', error);
+        console.error(error);
       });
   }
 
@@ -94,7 +98,6 @@ export default function Dashboard({
   }
 
   const FileList: React.FC<FileListProps> = ({ files }) => {
-    console.log(files);
     return (
       <div>
         <p>File List</p>
@@ -107,22 +110,20 @@ export default function Dashboard({
     );
   }
 
-  const AddInstructions: React.FC<FileListProps> = ({ files }) => {
+  const AddInstructions: React.FC<FileListProps> = () => {
     return (
       <div>
         <p>Your additional instructions</p>
+        <q>{userDataForDashboard.orderData.add_information}</q>
+
         <ul>
-          {files.map((file, index) => (
-            <li key={index}>{file.original_name}</li>
+          {userDataForDashboard.userGuides.map((guide: string, index: Key | null | undefined) => (
+            <li key={index}>{guide}</li>
           ))}
         </ul>
       </div>
     );
   }
-
-
-  
-
   // * ↑ VK: Significant for the backend area. Please exercise caution when making alterations
 
   return (
@@ -222,7 +223,11 @@ export default function Dashboard({
                 {userDataForDashboard ? (
                   <tr>
                     <td>{userDataForDashboard ? userDataForDashboard.orderData.order_id : ""}</td>
-                    <td>{userDataForDashboard ? userDataForDashboard.orderData.order_status : ""}</td>
+                    <td>
+                      {userDataForDashboard ? userDataForDashboard.orderData.order_status : ""}
+                      <DashboardTooltip title={userDataForDashboard.orderData.order_status_notes} />
+                    </td>
+
                     <td>
                       {userDataForDashboard
                         ? userDataForDashboard.orderData.created_at.toString().split("T")[0] +
@@ -254,10 +259,21 @@ export default function Dashboard({
                   : ""}
               </tbody>
             </table>
-            {/* Добавляем компонент FileList с передачей списка файлов */}
+            {/* VK: Add FileList component with file list passing */}
             {userDataForDashboard && <FileList files={userDataForDashboard.filesData} />}
-            {/* Добавляем компонент FileList с передачей списка файлов */}
+            {/* VK: Add AddInstructions component with other info */}
             {userDataForDashboard && <AddInstructions files={userDataForDashboard.filesData} />}
+            <p>Messages to editor</p>
+            {userDataForDashboard && 
+              <Inbox
+                userId={userDataForDashboard.userData.user_id}
+                userRole={localStorage.getItem('userRole')}
+                editorId={userDataForDashboard.orderData.editor_id}
+                orderId={userDataForDashboard.orderData.order_id}
+                messages={userDataForDashboard.messages}
+
+              />
+            }
           </div>
         </section>
       </div>

@@ -7,9 +7,10 @@ import InputText from "./components/InputText";
 import DownLoadFile from "./components/DownloadFile";
 import ChangeProfileForm from "./components/modal/ChangeProfileForm";
 import UploadFiles from "./components/UploadFile";
+import Inbox from "./components/Inbox";
 
 // * VK: Significant for the backend area. Please exercise caution when making alterations
-import { getUserDataForDashboard } from "./fetchScripts/getUserDataForDashboard";
+import { getRegistredUserData } from "./fetchScripts/getUserDataForDashboard";
 import { fetchWithRefreshAuth } from "./fetchScripts/fetchWithRefreshAuth";
 
 export default function DashBoardEditor({
@@ -30,7 +31,7 @@ export default function DashBoardEditor({
   useEffect(() => {
     const requestData = async () => {
       try {
-        const serverAnswer = await getUserDataForDashboard();
+        const serverAnswer = await getRegistredUserData();
         setUserDataForDashboard(serverAnswer);
       } catch (error) {
         console.error("An error occurred while loading data:", error);
@@ -306,6 +307,13 @@ export default function DashBoardEditor({
             </table>
           </div>
         </section>
+        {/* {userDataForDashboard && 
+              // <Inbox
+              //   userId={userDataForDashboard?.data.userData[0].id}
+              //   userRole={localStorage.getItem('userRole')}
+              //   editorId={1}
+              // />
+            } */}
       </div>
       <Footer kind="short" />
     </>

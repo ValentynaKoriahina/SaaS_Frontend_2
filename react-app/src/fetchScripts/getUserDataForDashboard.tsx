@@ -10,9 +10,9 @@ import { fetchWithRefreshAuth } from "./fetchWithRefreshAuth";
 
 
 
-async function getUserDataForDashboard() {
+async function getRegistredUserData() {
   try {
-    const response = await fetchWithRefreshAuth("/api/getUserDataForDashboard");
+    const response = await fetchWithRefreshAuth("/api/getRegistredUserData");
 
     // Extracts data from the response in JSON format.
     const data = await response.json();
@@ -31,19 +31,16 @@ async function getUserDataForDashboard() {
 }
 
 
-async function getUserDataForDashboard1(orderId: string | null) {
-  console.log(orderId, 'getUserDataForDashboard1');
-  
+async function getTempUserData(orderId: string | null) {
+ 
   try {
-    const response = await fetch("/api/getUserDataForDashboard1/" + orderId);
+    const response = await fetch("/api/getTempUserData/" + orderId);
 
     // Extracts data from the response in JSON format.
     const data = await response.json();
 
-    console.log('data', data);
     if (data.status == "fail") {
       alert("Please log in.");
-      console.log(data.message);
     } else {
       return data;
     }
@@ -54,4 +51,4 @@ async function getUserDataForDashboard1(orderId: string | null) {
 }
 
 // Exports the function for use in other parts of the code.
-export { getUserDataForDashboard, getUserDataForDashboard1};
+export { getRegistredUserData, getTempUserData};
