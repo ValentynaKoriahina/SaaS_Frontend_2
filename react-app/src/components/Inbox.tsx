@@ -171,7 +171,6 @@ type Message = {
 
 function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any; messages: any }) {
 
-  console.log(props.messages)
   const userId = props.userId;
 
   const [messages, setMessages] = useState<Message[]>(props.messages);
