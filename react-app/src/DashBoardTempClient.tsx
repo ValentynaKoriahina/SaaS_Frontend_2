@@ -32,7 +32,7 @@ export default function Dashboard({
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const orderId = searchParams.get("orderId");
-  
+
     const requestData = async () => {
       try {
         const serverAnswer = await getTempUserData(orderId);
@@ -43,7 +43,7 @@ export default function Dashboard({
         console.error("An error occurred while loading data:", error);
       }
     };
-  
+
     if (!userDataForDashboard) {
       requestData();
     }
@@ -264,14 +264,13 @@ export default function Dashboard({
             {/* VK: Add AddInstructions component with other info */}
             {userDataForDashboard && <AddInstructions files={userDataForDashboard.filesData} />}
             <p>Messages to editor</p>
-            {userDataForDashboard && 
+            {userDataForDashboard &&
               <Inbox
-                userId={userDataForDashboard.userData.user_id}
+                senderId={userDataForDashboard.userData.user_id}
                 userRole={localStorage.getItem('userRole')}
-                editorId={userDataForDashboard.orderData.editor_id}
+                receiverId={userDataForDashboard.orderData.editor_id}
                 orderId={userDataForDashboard.orderData.order_id}
                 messages={userDataForDashboard.messages}
-
               />
             }
           </div>

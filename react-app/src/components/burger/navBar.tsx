@@ -120,7 +120,7 @@ export const Navbar = ({
               to="/BuyCredits"
               onClick={() => close()}
             >
-              Buy Credits
+              Buy Creditsss
             </Link>
             <Link
               className="burger_visible__Link"

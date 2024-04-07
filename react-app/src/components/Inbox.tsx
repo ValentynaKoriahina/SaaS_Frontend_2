@@ -87,6 +87,11 @@
 
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
 import socketIOClient, { Socket } from 'socket.io-client';
+import { FaCheck } from 'react-icons/fa';
+
+import { getMessages } from "../fetchScripts/getUserDataForDashboard";
+import { saveMessage } from "../fetchScripts/getUserDataForDashboard";
+
 
 
 // Добавляем стили в компонент
@@ -124,6 +129,16 @@ const styles: { [key: string]: CSSProperties } = {
   incomingMessageBody: {
     backgroundColor: 'lightgrey',
   },
+  newMessageMarker: {
+    backgroundColor: 'red',
+    color: 'white',
+    fontSize: '14px',
+    marginLeft: '14px',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    display: 'inline-block',
+  },
   divider: {
     border: 'none',
     borderBottom: '1px solid grey',
@@ -157,6 +172,11 @@ const styles: { [key: string]: CSSProperties } = {
     borderRadius: '5px',
     cursor: 'pointer',
   },
+  markAsReadLink: {
+    cursor: 'pointer',
+    marginTop: '8px',
+    fontSize: '15px',
+  },
 };
 
 type Message = {
@@ -166,12 +186,13 @@ type Message = {
   order_id: number;
   text: string;
   timestamp: string;
+  is_read: number;
 };
 
 
-function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any; messages: any }) {
+function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: any; messages: any }) {
 
-  const userId = props.userId;
+  const userId = props.senderId;
 
   const [messages, setMessages] = useState<Message[]>(props.messages);
   console.log(messages)
@@ -180,13 +201,27 @@ function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any;
   const socket = useRef<Socket>();
 
   if (!socket.current) {
-    socket.current = socketIOClient('https://sassagreement.com.ghanastudyfair.com/');
-    // socket.current = socketIOClient('http://localhost:3001');
+    // socket.current = socketIOClient('https://sassagreement.com.ghanastudyfair.com/');
+    socket.current = socketIOClient('http://localhost:3001');
 
   }
 
+  const requestData = async () => {
+    try {
+      const serverAnswer = await getMessages(props.orderId);
+      console.log('serverAnswer!!')
+      console.log(serverAnswer.messages)
+
+      setMessages(serverAnswer.messages);
+    } catch (error) {
+      console.error("An error occurred: ", error);
+    }
+  };
+
   useEffect(() => {
-    socket.current!.emit('registerClient', props.userId, props.userRole);
+    requestData();
+
+    socket.current!.emit('registerClient', props.senderId, props.userRole);
 
     // socket.current!.on('newMessage', (message: Message) => {
     //   setMessages(prevMessages => [...prevMessages, message]);
@@ -195,27 +230,28 @@ function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any;
     return () => {
       socket.current!.off('newMessage');
     };
-  }, [props.userId, props.userRole]);
+  }, []);
 
   const handleSendMessage = () => {
-    const messageToAdd: Message = {
-      id: 0,
-      sender_id: props.userId,
-      receiver_id: props.editorId,
-      order_id: props.orderId,
-      text: newMessage,
-      timestamp: new Date().toString(),
-    };
+    // const messageToAdd: Message = {
+    //   id: parseInt(`0${Date.now()}`, 10),
+    //   sender_id: parseInt(props.senderId),
+    //   receiver_id: parseInt(props.receiverId),
+    //   order_id: props.orderId,
+    //   text: newMessage,
+    //   timestamp: new Date().toString(),
+    // };
 
-    setMessages(prevMessages => [messageToAdd, ...prevMessages]);
+    // setMessages(prevMessages => [messageToAdd, ...prevMessages]);
 
-    socket.current!.emit('sendMessage', { senderId: props.userId, message: newMessage, receiverId: props.editorId, orderId: props.orderId });
+    socket.current!.emit('sendMessage', { senderId: props.senderId, message: newMessage, receiverId: props.receiverId, orderId: props.orderId });
     setNewMessage('');
+    requestData();
 
     // Resetting the height of the text field
     const textArea = document.querySelector('textarea');
     if (textArea) {
-      textArea.style.height = 'auto'; 
+      textArea.style.height = 'auto';
     }
   };
 
@@ -226,6 +262,17 @@ function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any;
   };
 
 
+  function markAsRead(messageId: number) {
+    const updatedMessages = messages.map(message => {
+      if (message.id === messageId) {
+        return { ...message, is_read: 1 };
+      }
+      return message;
+    });
+    setMessages(updatedMessages);
+
+    saveMessage(messageId);
+  }
   return (
     <div style={styles.messagesContainer}>
       <div style={styles.messageInputContainer}>
@@ -233,30 +280,43 @@ function Inbox(props: { userId: any; userRole: any; editorId: any; orderId: any;
           style={styles.textarea}
           value={newMessage}
           onChange={handleInputChange}
-          placeholder="Write your message to editor..."
+          placeholder="Write your message..."
         />
         <button style={styles.sendButton} onClick={handleSendMessage}>Send</button>
       </div>
       <div style={styles.messageList}>
-        {messages.map((message, index) => (
-          <React.Fragment key={message.id}>
-            {index > 0 && <hr style={styles.divider} />}
-            <div style={styles.message}>
-              <div style={styles.messageHeader}>
-                <strong>{message.sender_id === props.userId ? 'You' : 'Editor'}</strong>
-                <span> ({new Date(message.timestamp).toLocaleString()})</span>
+        <div style={styles.messageList}>
+          {messages.map((message, index) => (
+            <React.Fragment key={message.id !== 0 ? message.id : `${message.id}-${Date.now()}`}>
+              {index > 0 && <hr style={styles.divider} />}
+              <div style={styles.message}>
+                <div style={styles.messageHeader}>
+                  <strong>{message.sender_id == props.senderId ? 'You' : 'Opponent'}</strong>
+                  <span> ({new Date(message.timestamp).toLocaleString()})</span>
+                  {!message.is_read && message.sender_id != props.senderId && (
+                    <div style={styles.newMessageMarker}>New</div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    ...styles.messageBody,
+                    ...(message.sender_id == props.senderId ? styles.outgoingMessageBody : styles.incomingMessageBody),
+                  }}
+                >
+                  {message.text}
+                </div>
               </div>
-              <div
-                style={{
-                  ...styles.messageBody,
-                  ...(message.sender_id === props.userId ? styles.outgoingMessageBody : styles.incomingMessageBody),
-                }}
-              >
-                {message.text}
+              <div>
+              {!message.is_read && message.sender_id != props.senderId && (
+                <span style={styles.markAsReadLink} onClick={() => markAsRead(message.id)}>
+                  <FaCheck style={styles.checkboxIcon} />
+                  Mark as read
+                </span>
+              )}
               </div>
-            </div>
-          </React.Fragment>
-        ))}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );

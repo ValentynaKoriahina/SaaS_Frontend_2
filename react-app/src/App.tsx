@@ -1,7 +1,10 @@
 import "./App.scss";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useRef, CSSProperties } from "react";
 import { HashLink as Link } from "react-router-hash-link";
 import { Route, Routes } from "react-router-dom";
+import socketIOClient, { Socket } from 'socket.io-client';
+
+
 import Home from "./Home";
 import UpLoad from "./UpLoad";
 import BuyCredits from "./BuyCredits";
@@ -15,8 +18,7 @@ import DashBoardManager from "./DashBoardManager";
 import Swal from "sweetalert2";
 import ResetPassword from "./ResetPassword";
 import DashBoardTempClient from "./DashBoardTempClient";
-
-
+import MessagingTool from "./MessagingTool";
 
 import OrderRewiew from "./OrderRewiew";
 import Contacts from "./Contacts";
@@ -25,6 +27,9 @@ import { ParallaxProvider } from "react-scroll-parallax";
 export const SignedInContext = createContext(false);
 export const SignedUpContext = createContext(true);
 export const MobileScreenContext = createContext(false);
+export const SocketContext = createContext<Socket | null>(null);
+
+
 
 // * VK: Significant for the backend area. Please exercise caution when making alterations
 import { sendLogInRequest, sendLogOutRequest } from "./fetchScripts/authRequests";
@@ -43,10 +48,9 @@ export function handleSignOut() {
   sendLogOutRequest();
 }
 
-
-//deleteCookie("token");
-
 function App() {
+
+
   // const value = `; ${document.cookie}`;
   // const parts = value.split(`; token=`);
   // console.log(document.cookie);
@@ -59,8 +63,11 @@ function App() {
 
   const [signedIn, onSignIn] = useState(token);
   const [signedUp, onSignUp] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+
   const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
   const [serverAnswerMessage, setServerAnswerMessage] = useState("");
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const [modalIsOpen, setIsOpen] = useState(false);
   const isMobileScreen = useMediaQuery({ query: "(max-width: 1028px" });
@@ -72,6 +79,19 @@ function App() {
     userPassword: "password",
   });
   console.log(userProfileData);
+
+  useEffect(() => {
+    if (signedIn && userData != null) {
+      const newSocket = socketIOClient('http://localhost:3001');
+      if (userData.userId && userData.userRole) {
+        newSocket.emit('registerClient', userData.userId, userData.userRole);
+        setSocket(newSocket);
+        console.log('socket')
+        console.log(newSocket)
+      }
+    }
+  }, [signedIn, userData]);
+
   function handleSignUp() {
     onSignUp(!signedUp);
   }
@@ -89,9 +109,12 @@ function App() {
       // * VK: Logic in case of successful authorization
       localStorage.setItem('accessToken', "valid");
       localStorage.setItem("userRole", answer.userRole);
+      localStorage.setItem("userId", answer.userId);
+
       setUserRole(answer.userRole);
-      // console.log('Server response OK:', data);
-      //alert(answer.message);
+      setUserData(answer);
+      console.log('Server response OK:', answer);
+
       Swal.fire({
         title: "Good job!",
         text: `${answer.message}!`,
@@ -131,6 +154,8 @@ function App() {
       }
     }
     setServerAnswerMessage(answer.message);
+
+
   }
 
   console.log(serverAnswerMessage);
@@ -141,187 +166,205 @@ function App() {
     <>
       <SignedUpContext.Provider value={signedUp}>
         <SignedInContext.Provider value={signedIn}>
-          <ParallaxProvider>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <Home
-                    kind="full"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    setUserProfileData={setUserProfileData}
-                    signedUp={signedUp}
-                    onSignUp={onSignUp}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="About"
-                element={
-                  <About
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="Services"
-                element={
-                  <Services
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-
-              <Route
-                path="FAQs"
-                element={
-                  <About
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="UpLoad"
-                element={
-                  <UpLoad
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="OrderRewiew"
-                element={
-                  <OrderRewiew
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="BuyCredits"
-                element={
-                  <BuyCredits
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="Contacts"
-                element={
-                  <Contacts
-                    kind="short"
-                    onSignIn={onSignIn}
-                    handleSignIn={handleSignIn}
-                    signedUp={signedUp}
-                    setUserProfileData={setUserProfileData}
-                    handleSignUp={handleSignUp}
-                    modalIsOpen={modalIsOpen}
-                    setIsOpen={setIsOpen}
-                  />
-                }
-              />
-              <Route
-                path="DashBoard"
-                element={
-                  userRole === "client" ? (
-                    <DashBoard
-                      kind="short"
+          <SocketContext.Provider value={socket}>
+            <ParallaxProvider>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Home
+                      kind="full"
                       onSignIn={onSignIn}
                       handleSignIn={handleSignIn}
-                      signedUp={signedUp}
                       setUserProfileData={setUserProfileData}
+                      signedUp={signedUp}
+                      onSignUp={onSignUp}
                       handleSignUp={handleSignUp}
                       modalIsOpen={modalIsOpen}
                       setIsOpen={setIsOpen}
                     />
-                  ) : userRole === "editor" ? (
-                    <DashBoardEditor
-                      kind="short"
-                      onSignIn={onSignIn}
-                      handleSignIn={handleSignIn}
-                      signedUp={signedUp}
-                      setUserProfileData={setUserProfileData}
-                      handleSignUp={handleSignUp}
-                      modalIsOpen={modalIsOpen}
-                      setIsOpen={setIsOpen}
-                    />
-                  ) : (
-                    <DashBoardManager
-                      kind="short"
-                      onSignIn={onSignIn}
-                      handleSignIn={handleSignIn}
-                      signedUp={signedUp}
-                      setUserProfileData={setUserProfileData}
-                      handleSignUp={handleSignUp}
-                      modalIsOpen={modalIsOpen}
-                      setIsOpen={setIsOpen}
-                    />
-                  )
-                }
-              />
-              // * VK: Temporary User Dashboard
-              <Route path="/TemporaryDashboard" element={
-                <DashBoardTempClient
-                  kind="short"
-                  onSignIn={onSignIn}
-                  handleSignIn={handleSignIn}
-                  signedUp={signedUp}
-                  setUserProfileData={setUserProfileData}
-                  handleSignUp={handleSignUp}
-                  modalIsOpen={modalIsOpen}
-                  setIsOpen={setIsOpen}
+                  }
                 />
-              } />
+                <Route
+                  path="About"
+                  element={
+                    <About
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="Services"
+                  element={
+                    <Services
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
 
-              <Route path="*" element={<NotFound />} />
-              <Route path="/resetPassword" Component={ResetPassword} />
+                <Route
+                  path="FAQs"
+                  element={
+                    <About
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="UpLoad"
+                  element={
+                    <UpLoad
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="OrderRewiew"
+                  element={
+                    <OrderRewiew
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="BuyCredits"
+                  element={
+                    <BuyCredits
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="/Messages/:orderId/:receiverId"
+                  element={
+                    <MessagingTool
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="Contacts"
+                  element={
+                    <Contacts
+                      kind="short"
+                      onSignIn={onSignIn}
+                      handleSignIn={handleSignIn}
+                      signedUp={signedUp}
+                      setUserProfileData={setUserProfileData}
+                      handleSignUp={handleSignUp}
+                      modalIsOpen={modalIsOpen}
+                      setIsOpen={setIsOpen}
+                    />
+                  }
+                />
+                <Route
+                  path="DashBoard"
+                  element={
+                    userRole === "client" ? (
+                      <DashBoard
+                        kind="short"
+                        onSignIn={onSignIn}
+                        handleSignIn={handleSignIn}
+                        signedUp={signedUp}
+                        setUserProfileData={setUserProfileData}
+                        handleSignUp={handleSignUp}
+                        modalIsOpen={modalIsOpen}
+                        setIsOpen={setIsOpen}
+                      />
+                    ) : userRole === "editor" ? (
+                      <DashBoardEditor
+                        kind="short"
+                        onSignIn={onSignIn}
+                        handleSignIn={handleSignIn}
+                        signedUp={signedUp}
+                        setUserProfileData={setUserProfileData}
+                        handleSignUp={handleSignUp}
+                        modalIsOpen={modalIsOpen}
+                        setIsOpen={setIsOpen}
+                      />
+                    ) : (
+                      <DashBoardManager
+                        kind="short"
+                        onSignIn={onSignIn}
+                        handleSignIn={handleSignIn}
+                        signedUp={signedUp}
+                        setUserProfileData={setUserProfileData}
+                        handleSignUp={handleSignUp}
+                        modalIsOpen={modalIsOpen}
+                        setIsOpen={setIsOpen}
+                      />
+                    )
+                  }
+                />
+              // * VK: Temporary User Dashboard
+                <Route path="/TemporaryDashboard" element={
+                  <DashBoardTempClient
+                    kind="short"
+                    onSignIn={onSignIn}
+                    handleSignIn={handleSignIn}
+                    signedUp={signedUp}
+                    setUserProfileData={setUserProfileData}
+                    handleSignUp={handleSignUp}
+                    modalIsOpen={modalIsOpen}
+                    setIsOpen={setIsOpen}
+                  />
+                } />
 
-            </Routes>
-          </ParallaxProvider>
+                <Route path="*" element={<NotFound />} />
+                <Route path="/resetPassword" Component={ResetPassword} />
+
+              </Routes>
+            </ParallaxProvider>
+          </SocketContext.Provider>
+
         </SignedInContext.Provider>
       </SignedUpContext.Provider>
     </>

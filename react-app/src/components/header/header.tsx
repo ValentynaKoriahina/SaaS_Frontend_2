@@ -141,7 +141,6 @@ export default function HeaderMenu({
                 <Link className="nav__link nav__text" to="/BuyCredits">
                   Buy Credits
                 </Link>
-
                 {!isMobileScreen ? (
                   <Link to="/">
                     <ModalWindow

@@ -2,16 +2,17 @@ import React, { useState, useEffect } from "react";
 import Footer from "./components/footer/footer";
 import HeaderMenu from "./components/header/header";
 import Button from "./components/Button";
+import MessageButton from "./components/MessageButton";
 import ModalWindow from "./components/modal/modal";
 import InputText from "./components/InputText";
 import DownLoadFile from "./components/DownloadFile";
 import ChangeProfileForm from "./components/modal/ChangeProfileForm";
 import UploadFiles from "./components/UploadFile";
-import Inbox from "./components/Inbox";
 
 // * VK: Significant for the backend area. Please exercise caution when making alterations
 import { getRegistredUserData } from "./fetchScripts/getUserDataForDashboard";
 import { fetchWithRefreshAuth } from "./fetchScripts/fetchWithRefreshAuth";
+import socketIOClient, { Socket } from 'socket.io-client';
 
 export default function DashBoardEditor({
   kind,
@@ -27,19 +28,45 @@ export default function DashBoardEditor({
     null
   );
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  const requestData = async () => {
+    try {
+      const serverAnswer = await getRegistredUserData();
+      setUserDataForDashboard(serverAnswer);
+    } catch (error) {
+      console.error("An error occurred while loading data:", error);
+    }
+  };
 
   useEffect(() => {
-    const requestData = async () => {
-      try {
-        const serverAnswer = await getRegistredUserData();
-        setUserDataForDashboard(serverAnswer);
-      } catch (error) {
-        console.error("An error occurred while loading data:", error);
-      }
-    };
-
     requestData();
   }, []);
+
+  useEffect(() => {
+    // Проверяем, есть ли токен авторизации в localStorage
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const newSocket = socketIOClient('http://localhost:3001');
+      newSocket.emit('registerClient', localStorage.getItem('userId'), localStorage.getItem('userRole'));
+      setSocket(newSocket);
+      console.log('socket4')
+      console.log(newSocket)
+    }
+  }, []);
+
+  // Внутри функции DashBoardEditor
+  useEffect(() => {
+
+    if (socket) {
+      socket.on('incomingMessage', (message) => {
+        console.log('Получено новое сообщение:', message);
+        requestData();
+      });
+    }
+    
+  }, [socket]);
+
 
   function toggleOrderDetails(orderId: React.SetStateAction<null>) {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
@@ -127,6 +154,10 @@ export default function DashBoardEditor({
     setIsOpen(false);
   }
 
+  function handleResetPass(): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <>
       <div className="app">
@@ -190,7 +221,7 @@ export default function DashBoardEditor({
                   <td>Delivery time</td>
                   <td>Manage</td>
                   <td>Status</td>
-                  <td>Download file</td>
+                  <td>Actions</td>
                   <td>Upload Edited File</td>
                   <td>Notes or Flag to manager</td>
                 </tr>
@@ -205,7 +236,6 @@ export default function DashBoardEditor({
                         <tr>
                           <td onClick={() => toggleOrderDetails(e.order_id)}>
                             {expandedOrderId === e.order_id ? "▲" : "▼"}{" "}
-                            {/* Стрелка */}
                             {userDataForDashboard ? e.order_id : ""}
                           </td>
                           <td>
@@ -248,23 +278,25 @@ export default function DashBoardEditor({
                           </td>
                           <td>{userDataForDashboard ? e.order_status : ""}</td>
                           <td>
-                            {[
-                              "pending",
-                              "paid",
-                              "processed",
-                              "in work",
-                            ].includes(e.order_status) ? (
-                              <DownLoadFile orderId={e.order_id} />
-                            ) : (
-                              <></>
+                            {["pending", "paid", "processed", "in work"].includes(e.order_status) && (
+                              <>
+                                <DownLoadFile orderId={e.order_id} />
+                                <MessageButton
+                                  color={"orange"}
+                                  style={"table-btn"}
+                                  disable={false}
+                                  e={e}
+                                  hasNewMessage={e.unread_messages}
+                                />
+                              </>
                             )}
                           </td>
+
                           <td>
                             {e.order_status === "in work" ? (
-                              <UploadFiles
-                                orderId={e.order_id}
-                                clientEmail={e.client_email}
-                              />
+                              <>
+                                <UploadFiles orderId={e.order_id} clientEmail={e.client_email} />
+                              </>
                             ) : (
                               <UploadFiles orderId={e.order_id} isDisabled />
                             )}
@@ -285,19 +317,18 @@ export default function DashBoardEditor({
                         {expandedOrderId === e.order_id && (
                           <tr>
                             <td colSpan={10}>
-                              <p><b>Service type:</b> {e.service_type} </p>
+                              <p><b>Service type: </b>{e.service_type}</p>
                               {e.add_information ? <p><b>Additional information:</b> {e.add_information} </p> : null}
                               {e.user_guides ? <p><a href="#" onClick={() => downloadClientGuides(e.order_id)}>Download instructions for work</a></p> : null}
                               <p><b>Client info:</b></p>
-                              <p><b>Email:</b> {e.client_email} </p>
-                              <p><b>Company:</b> {e.clients_company_name} </p>
-                              <p><b>Address:</b> {e.clients_company_address} </p>
-                              <p><b>Industry:</b> {e.clients_company_industry} </p>
-                              <p><b>Contract info:</b></p>
-                              <p><b>Description</b> {e.contract_description} </p>
-                              <p><b>Value:</b> {e.contract_value} </p>
-                              <p><b>Counterparty name:</b> {e.counterparty_name} </p>
-                              <p><b>Counterparty address:</b> {e.counterparty_address} </p>
+                              <p><b>Company: </b>{e.clients_company_name}</p>
+                              <p><b>Address: </b>{e.clients_company_address}</p>
+                              <p><b>Industry: </b>{e.clients_company_industry}</p>
+                              <p><b>Contract info: </b></p>
+                              <p><b>Description: </b>{e.contract_description}</p>
+                              <p><b>Value: </b>{e.contract_value}</p>
+                              <p><b>Counterparty name: </b>{e.counterparty_name}</p>
+                              <p><b>Counterparty address: </b>{e.counterparty_address}</p>
                             </td>
                           </tr>
                         )}
@@ -307,13 +338,6 @@ export default function DashBoardEditor({
             </table>
           </div>
         </section>
-        {/* {userDataForDashboard && 
-              // <Inbox
-              //   userId={userDataForDashboard?.data.userData[0].id}
-              //   userRole={localStorage.getItem('userRole')}
-              //   editorId={1}
-              // />
-            } */}
       </div>
       <Footer kind="short" />
     </>

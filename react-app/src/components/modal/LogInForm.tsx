@@ -47,7 +47,7 @@ const LogInForm = ({
               id="login"
               name="login"
               placeholder="Enter user name"
-              defaultValue="client"
+              defaultValue="editor"
               required
             />
             <br />
