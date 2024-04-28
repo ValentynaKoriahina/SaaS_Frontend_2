@@ -1,90 +1,3 @@
-// import React, { useState } from 'react';
-
-// // Добавляем стили в компонент
-// const styles = {
-//   messageList: {
-//     padding: '10px',
-//   },
-//   message: {
-//     padding: '10px',
-//     margin: '5px 0',
-//     borderRadius: '5px',
-//   },
-//   outgoingMessage: {
-//     backgroundColor: 'lightblue',
-//   },
-//   incomingMessage: {
-//     backgroundColor: 'lightgrey',
-//   },
-//   messageInput: {
-//     marginTop: '20px',
-//   },
-// };
-
-// interface Message {
-//   id: number;
-//   senderId: number;
-//   senderName: string; // Имя отправителя
-//   content: string;
-//   timestamp: string; // Дата и время отправки
-// }
-
-// // Предполагаем, что ID текущего пользователя — 1
-// const userId = 1;
-
-// // Начальный массив сообщений
-// const initialMessages: Message[] = [
-//   { id: 1, senderId: 2, senderName: "Алиса", content: 'Как дела?', timestamp: new Date().toLocaleString() },
-//   { id: 2, senderId: 1, senderName: "Боб", content: 'Всё отлично, спасибо!', timestamp: new Date().toLocaleString() },
-// ];
-
-// function Inbox() {
-//   const [messages, setMessages] = useState<Message[]>(initialMessages);
-//   const [newMessage, setNewMessage] = useState('');
-
-//   const handleSendMessage = () => {
-//     const nextMessageId = messages.length + 1;
-//     const messageToAdd: Message = {
-//       id: nextMessageId,
-//       senderId: userId,
-//       senderName: "Вы", // Предполагаем, что для текущего пользователя мы используем "Вы"
-//       content: newMessage,
-//       timestamp: new Date().toLocaleString(), // Записываем текущие дату и время отправки
-//     };
-//     setMessages([...messages, messageToAdd]);
-//     setNewMessage('');
-//   };
-
-//   return (
-//     <div>
-//       <div style={styles.messageList}>
-//         {messages.map((message) => (
-//           <div 
-//             key={message.id} 
-//             style={{
-//               ...styles.message,
-//               ...(message.senderId === userId ? styles.outgoingMessage : styles.incomingMessage),
-//             }}
-//           >
-//             <strong>{message.senderName}</strong> ({message.timestamp}): {message.content}
-//           </div>
-//         ))}
-//       </div>
-//       <div style={styles.messageInput}>
-//         <textarea
-//           value={newMessage}
-//           onChange={(e) => setNewMessage(e.target.value)}
-//           placeholder="Напишите сообщение..."
-//         />
-//         <button onClick={handleSendMessage}>Отправить</button>
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Inbox;
-
-
 import React, { useState, useEffect, useRef, CSSProperties } from 'react';
 import socketIOClient, { Socket } from 'socket.io-client';
 import { FaCheck } from 'react-icons/fa';
@@ -92,9 +5,6 @@ import { FaCheck } from 'react-icons/fa';
 import { getMessages } from "../fetchScripts/getUserDataForDashboard";
 import { saveMessage } from "../fetchScripts/getUserDataForDashboard";
 
-
-
-// Добавляем стили в компонент
 const styles: { [key: string]: CSSProperties } = {
   messagesContainer: {
     backgroundColor: '#f8f8f8',
@@ -192,11 +102,7 @@ type Message = {
 
 function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: any; messages: any }) {
 
-  const userId = props.senderId;
-
   const [messages, setMessages] = useState<Message[]>(props.messages);
-  console.log(messages)
-
   const [newMessage, setNewMessage] = useState('');
   const socket = useRef<Socket>();
 
@@ -224,6 +130,7 @@ function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: 
     socket.current!.emit('registerClient', props.senderId, props.userRole);
 
     // socket.current!.on('newMessage', (message: Message) => {
+    //   console.log(message)
     //   setMessages(prevMessages => [...prevMessages, message]);
     // });
 
@@ -231,6 +138,17 @@ function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: 
       socket.current!.off('newMessage');
     };
   }, []);
+
+  useEffect(() => {
+
+    if (socket) {
+      socket.current!.on('incomingMessage', (message: any) => {
+        console.log('Получено новое сообщение:', message);
+        requestData();
+      });
+    }
+    
+  }, [socket]);
 
   const handleSendMessage = () => {
     // const messageToAdd: Message = {

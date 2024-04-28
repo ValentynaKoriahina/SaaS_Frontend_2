@@ -44,7 +44,6 @@ export default function DashBoardEditor({
   }, []);
 
   useEffect(() => {
-    // Проверяем, есть ли токен авторизации в localStorage
     const token = localStorage.getItem('accessToken');
     if (token) {
       const newSocket = socketIOClient('http://localhost:3001');
@@ -55,7 +54,6 @@ export default function DashBoardEditor({
     }
   }, []);
 
-  // Внутри функции DashBoardEditor
   useEffect(() => {
 
     if (socket) {
