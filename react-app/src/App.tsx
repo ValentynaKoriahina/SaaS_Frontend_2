@@ -2,8 +2,6 @@ import "./App.scss";
 import { createContext, useEffect, useState, useRef, CSSProperties } from "react";
 import { HashLink as Link } from "react-router-hash-link";
 import { Route, Routes } from "react-router-dom";
-import socketIOClient, { Socket } from 'socket.io-client';
-
 
 import Home from "./Home";
 import UpLoad from "./UpLoad";
@@ -65,7 +63,6 @@ function App() {
 
   const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
   const [serverAnswerMessage, setServerAnswerMessage] = useState("");
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   const [modalIsOpen, setIsOpen] = useState(false);
   const isMobileScreen = useMediaQuery({ query: "(max-width: 1028px" });
@@ -77,18 +74,6 @@ function App() {
     userPassword: "password",
   });
   console.log(userProfileData);
-
-  useEffect(() => {
-    if (signedIn && userData != null) {
-      const newSocket = socketIOClient('http://localhost:3001');
-      if (userData.userId && userData.userRole) {
-        newSocket.emit('registerClient', userData.userId, userData.userRole);
-        setSocket(newSocket);
-        console.log('socket')
-        console.log(newSocket)
-      }
-    }
-  }, [signedIn, userData]);
 
   function handleSignUp() {
     onSignUp(!signedUp);

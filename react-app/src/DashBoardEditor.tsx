@@ -47,10 +47,8 @@ export default function DashBoardEditor({
     const token = localStorage.getItem('accessToken');
     if (token) {
       const newSocket = socketIOClient('http://localhost:3001');
-      newSocket.emit('registerClient', localStorage.getItem('userId'), localStorage.getItem('userRole'));
+      newSocket.emit('registerUser', localStorage.getItem('userId'), localStorage.getItem('userRole'));
       setSocket(newSocket);
-      console.log('socket4')
-      console.log(newSocket)
     }
   }, []);
 

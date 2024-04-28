@@ -127,7 +127,7 @@ function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: 
   useEffect(() => {
     requestData();
 
-    socket.current!.emit('registerClient', props.senderId, props.userRole);
+    socket.current!.emit('registerUser', props.senderId, props.userRole);
 
     // socket.current!.on('newMessage', (message: Message) => {
     //   console.log(message)
