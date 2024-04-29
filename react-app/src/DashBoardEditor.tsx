@@ -46,7 +46,8 @@ export default function DashBoardEditor({
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      const newSocket = socketIOClient('http://localhost:3001');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const newSocket = socketIOClient(apiUrl);
       newSocket.emit('registerUser', localStorage.getItem('userId'), localStorage.getItem('userRole'));
       setSocket(newSocket);
     }

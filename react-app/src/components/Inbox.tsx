@@ -107,9 +107,8 @@ function Inbox(props: { senderId: any; userRole: any; receiverId: any; orderId: 
   const socket = useRef<Socket>();
 
   if (!socket.current) {
-    // socket.current = socketIOClient('https://sassagreement.com.ghanastudyfair.com/');
-    socket.current = socketIOClient('http://localhost:3001');
-
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    socket.current = socketIOClient(apiUrl);
   }
 
   const requestData = async () => {

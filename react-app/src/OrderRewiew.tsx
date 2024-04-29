@@ -43,7 +43,7 @@ export default function CalculateCost({
   type ContractType = 'type 1' | 'type 2' | 'type 3' | '';
   const [contractType, setContractType] = useState<ContractType>('');
   const [contractDescription, setContractDescription] = useState("Contract Description 1");
-  const [contractValue, setContractValue] = useState(10000);
+  const [contractValue, setContractValue] = useState('10000');
 
   const [counterpartyName, setCounterpartyName] = useState("Counterparty 1");
   const [counterpartyAddress, setCounterpartyAddress] = useState("Counterparty 1 address");
@@ -139,7 +139,7 @@ export default function CalculateCost({
     // Adding contract data
     formData.append("contractType", contractType);
     formData.append("contractDescription", contractDescription);
-    formData.append("contractValue", contractValue);
+    formData.append("contractValue", String(contractValue));
     formData.append("counterpartyName", counterpartyName);
     formData.append("counterpartyAddress", counterpartyAddress);
     formData.append("serviceType", serviceType);

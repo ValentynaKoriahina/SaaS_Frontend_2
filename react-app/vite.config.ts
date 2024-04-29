@@ -27,8 +27,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': { 
-        target: 'http://localhost:3001',
-        // target: 'https://sassagreement.com.ghanastudyfair.com',
+        // target: 'http://localhost:3001',
+        target: 'https://sassagreement.com.ghanastudyfair.com',
         // target: 'https://chronolegal.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/$/, ''),
